@@ -1,46 +1,44 @@
 package uce.edu.web.api.auth.interfaces;
 
 import io.smallrye.jwt.build.Jwt;
-import jakarta.ws.rs.DefaultValue;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import uce.edu.web.api.auth.models.Usuario; // Importante: importar tu entidad
 
 import java.time.Instant;
 import java.util.Set;
 
+@Path("/auth")
 public class AuthResource {
 
     @GET
     @Path("/token")
-    public TokenResponse token(
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response token(
             @QueryParam("user") @DefaultValue("estudiante1") String user,
             @QueryParam("password") @DefaultValue("estudiante1") String password) {
 
-        //aqui es donde se compara el password y usuario contra la base
-        //TAREA
-        boolean ok = true;
-        String role= "admin";
-        //crear tabla usuario, clave primaria, password, y rol
-        if (ok) {
+        Usuario usuarioEncontrado = Usuario.find("username", user).firstResult();
+
+        if (usuarioEncontrado != null && usuarioEncontrado.password.equals(password)) {
+
             String issuer = "matricula-auth";
             long ttl = 3600;
-
             Instant now = Instant.now();
             Instant exp = now.plusSeconds(ttl);
 
             String jwt = Jwt.issuer(issuer)
                     .subject(user)
-                    .groups(Set.of(role))     // roles: user / admin
+                    .groups(Set.of(usuarioEncontrado.role))
                     .issuedAt(now)
                     .expiresAt(exp)
                     .sign();
 
-            return new TokenResponse(jwt, exp.getEpochSecond(), role);
-        }else {
-           return null;
+            return Response.ok(new TokenResponse(jwt, exp.getEpochSecond(), usuarioEncontrado.role)).build();
+        } else {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Credenciales incorrectas").build();
         }
-
     }
 
     public static class TokenResponse {
