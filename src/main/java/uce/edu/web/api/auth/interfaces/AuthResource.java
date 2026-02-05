@@ -16,26 +16,25 @@ public class AuthResource {
     @Path("/token")
     @Produces(MediaType.APPLICATION_JSON)
     public Response token(
-            @QueryParam("user") @DefaultValue("estudiante1") String user,
-            @QueryParam("password") @DefaultValue("estudiante1") String password) {
-
+            @QueryParam("user")  String user,
+            @QueryParam("password")  String password) {
         Usuario usuarioEncontrado = Usuario.find("username", user).firstResult();
 
         if (usuarioEncontrado != null && usuarioEncontrado.password.equals(password)) {
 
-            String issuer = "matricula-auth";
+            String issuer = "matricular-auth";
             long ttl = 3600;
             Instant now = Instant.now();
             Instant exp = now.plusSeconds(ttl);
 
             String jwt = Jwt.issuer(issuer)
                     .subject(user)
-                    .groups(Set.of(usuarioEncontrado.role))
+                    .groups(Set.of(usuarioEncontrado.role.toLowerCase()))
                     .issuedAt(now)
                     .expiresAt(exp)
                     .sign();
 
-            return Response.ok(new TokenResponse(jwt, exp.getEpochSecond(), usuarioEncontrado.role)).build();
+            return Response.ok(new TokenResponse(jwt, exp.getEpochSecond(), usuarioEncontrado.role.toLowerCase())).build();
         } else {
             return Response.status(Response.Status.UNAUTHORIZED).entity("Credenciales incorrectas").build();
         }
@@ -52,7 +51,7 @@ public class AuthResource {
         public TokenResponse(String accessToken, long expiresAt, String role) {
             this.accessToken = accessToken;
             this.expiresAt = expiresAt;
-            this.role = role;
+            this.role = role.toLowerCase();
         }
     }
 }
