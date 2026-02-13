@@ -17,7 +17,8 @@ public class AuthResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response token(
             @QueryParam("user")  String user,
-            @QueryParam("password")  String password) {
+            @QueryParam("password")  String password,
+            @QueryParam("rol") String rol) {
         Usuario usuarioEncontrado = Usuario.find("username", user).firstResult();
 
         if (usuarioEncontrado != null && usuarioEncontrado.password.equals(password)) {
@@ -29,28 +30,26 @@ public class AuthResource {
 
             String jwt = Jwt.issuer(issuer)
                     .subject(user)
-                    .groups(Set.of(usuarioEncontrado.role.toLowerCase()))
+                    .groups(rol.toLowerCase())
                     .issuedAt(now)
                     .expiresAt(exp)
                     .sign();
 
-            return Response.ok(new TokenResponse(jwt, exp.getEpochSecond(), usuarioEncontrado.role.toLowerCase())).build();
+            return Response.ok(new TokenResponse(jwt,rol.toLowerCase())).build();
         } else {
             return Response.status(Response.Status.UNAUTHORIZED).entity("Credenciales incorrectas").build();
         }
     }
 
-    public static class TokenResponse {
-        public String accessToken;
-        public long expiresAt;
-        public String role;
 
+    public static class TokenResponse {
+        public String token;
+        public String role;
         public TokenResponse() {
         }
 
-        public TokenResponse(String accessToken, long expiresAt, String role) {
-            this.accessToken = accessToken;
-            this.expiresAt = expiresAt;
+        public TokenResponse(String accessToken, String role) {
+            this.token = accessToken;
             this.role = role.toLowerCase();
         }
     }
